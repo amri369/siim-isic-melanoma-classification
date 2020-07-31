@@ -1,0 +1,6 @@
+data/*
+exp/*
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+tensorboard
+.DS_Store
