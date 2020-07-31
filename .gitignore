@@ -2,5 +2,6 @@ data/*
 exp/*
 .ipynb_checkpoints
 */.ipynb_checkpoints/*
+*__pycache__/*
 tensorboard
 .DS_Store

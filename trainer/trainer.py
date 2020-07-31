@@ -8,7 +8,7 @@ from trainer.evaluate import Evaluate
 
 class Trainer(object):
 
-    def __init__(self, model, criteria, optimizer, scheduler, gpus, seed, writer):
+    def __init__(self, model, criteria, optimizer, scheduler, gpus, seed, writer, resume=None):
         self.model = model
         self.criteria = criteria
         self.optimizer = optimizer
@@ -17,12 +17,12 @@ class Trainer(object):
         self.is_gpu_available = torch.cuda.is_available()
         self.seed = seed
         self.writer = writer
+        self.resume = resume
 
     def set_devices(self):
         if self.is_gpu_available:
             os.environ["CUDA_VISIBLE_DEVICES"] = self.gpus
             self.model = self.model.cuda()
-            self.model = torch.nn.DataParallel(self.model)
             self.criteria = self.criteria.cuda()
         else:
             self.model = self.model.cpu()
@@ -37,7 +37,7 @@ class Trainer(object):
         random.seed(seed)
 
         np.random.seed(seed)
-
+        
         torch.backends.cudnn.deterministic = True
 
     def training_step(self, dataloader):
@@ -52,10 +52,14 @@ class Trainer(object):
                 x, y = x.cuda(), y.cuda()
             with torch.set_grad_enabled(True):
                 z = self.model(x)
+                #print('------y', y)
+                #print('------z', z)
+                #print('------y', y.shape)
+                #print('------z', z.shape)
                 loss = self.criteria(z, y)
                 
             # evaluate
-            self.evaluate_train.step(torch.sigmoid(z), y, len(x))
+            self.evaluate_train.step(nn.Sigmoid()(z)[:, 1], y, len(x))
                 
             # back propagation
             self.optimizer.zero_grad()
@@ -63,7 +67,7 @@ class Trainer(object):
             nn.utils.clip_grad_value_(self.model.parameters(), 0.1)
             self.optimizer.step()
             if self.scheduler is not None:
-                self.scheduler.step(loss.cpu().data.numpy())
+                self.scheduler.step()
 
             epoch_loss += loss.item() * len(x)
 
@@ -88,7 +92,7 @@ class Trainer(object):
                 
             # evaluate
             z = torch.sigmoid(z)
-            self.evaluate_val.step(z, y, len(x))
+            #self.evaluate_val.step(z, y, len(x))
             
             epoch_loss += loss.item() * len(x)
             
@@ -97,11 +101,7 @@ class Trainer(object):
             x[:, 1, :, :] = x[:, 1, :, :] * std[1] + mean[1]
             x[:, 2, :, :] = x[:, 2, :, :] * std[2] + mean[2]
             img_grid = torchvision.utils.make_grid(x)
-            gt_grid = torchvision.utils.make_grid(y)
-            pred_grid = torchvision.utils.make_grid(z)
             self.writer.add_image('Input images', img_grid, epoch)
-            self.writer.add_image('Ground truth', gt_grid, epoch)
-            self.writer.add_image('Prediction', pred_grid, epoch)
         
         epoch_loss = epoch_loss / len(dataloader)
         return epoch_loss
@@ -118,11 +118,30 @@ class Trainer(object):
             os.makedirs(model_dir)
         model_out_path = os.path.join(model_dir, "_epoch_{}.pth".format(epoch))
         torch.save(state, model_out_path)
+        
+    def resume_checkpoint(self):
+        resume = self.resume
+        if os.path.isfile(self.resume):
+            print("=> loading checkpoint '{}'".format(resume))
+            checkpoint = torch.load(resume, map_location='cuda:0')
+            epoch = checkpoint['epoch']
+            self.model.load_state_dict(checkpoint['state_dict'])
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+            print("=> loaded checkpoint '{}' (epoch {})".format(resume, checkpoint['epoch']))
+        else:
+            epoch = 0
+        return epoch
 
     def __call__(self, dataloaders, epochs, model_dir):
+        # preparation
         Trainer.set_seed(self.seed)
         self.set_devices()
-        for epoch in range(epochs):
+        
+        # resume checkpoint
+        if self.resume is not None:
+            start_epoch = self.resume_checkpoint()
+        
+        for epoch in range(start_epoch, epochs):
             # initialize evaluation metrics
             self.evaluate_train = Evaluate()
             self.evaluate_val = Evaluate()
@@ -138,9 +157,9 @@ class Trainer(object):
             self.writer.add_scalar('Loss/val', val_loss, epoch)
             
             keys = ['auc', 'acc', 'F1', 'SP', 'SE']
-            for key in keys:
-                self.writer.add_scalar(key + '/train', self.evaluate_train.scalars[key], epoch)
-                self.writer.add_scalar(key + '/val', self.evaluate_val.scalars[key], epoch)
+            #for key in keys:
+            #    self.writer.add_scalar(key + '/train', self.evaluate_train.scalars[key], epoch)
+            #    self.writer.add_scalar(key + '/val', self.evaluate_val.scalars[key], epoch)
         
         self.writer.close()
             
