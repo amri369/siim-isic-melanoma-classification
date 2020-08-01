@@ -51,21 +51,20 @@ class Trainer(object):
 
         # loop over training set
         self.model.train()
-        for x, y in dataloader:
+        for (x, _), y in dataloader:
             # mount to GPU
             if self.is_gpu_available:
                 x, y = x.cuda(), y.cuda()
                 
             # predict
             with torch.set_grad_enabled(True):
-                z = self.features_extractor(x)
+                z = self.features_extractor(x)  
                 z = self.model(z)
                 loss = self.criteria(z, y)
                 print('------l', loss.cpu().data.numpy())
                 
             # evaluate
-            #print('-------z', nn.Sigmoid()(z))
-            #self.evaluate_train.step(nn.Sigmoid()(z)[:, 1], y, len(x))
+            #self.evaluate_train.step(torch.nn.Softmax(dim=1)(y)(z)[:, 1], y, len(x))
                 
             # back propagation
             self.optimizer.zero_grad()
@@ -88,10 +87,11 @@ class Trainer(object):
 
         # loop over validation set
         self.model.eval()
-        for x, y in dataloader:
+        for (x, _), y in dataloader:
             # predict
             if self.is_gpu_available:
-                x, y = x.cuda(), y.cuda()
+                (x, _), y = x.cuda(), y.cuda()
+                
             with torch.set_grad_enabled(False):
                 z = self.features_extractor(x)
                 z = self.model(z)

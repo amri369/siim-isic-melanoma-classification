@@ -19,7 +19,6 @@ def main(args):
     mean = [104.00699, 116.66877, 122.67892]
     std = [0.225*255, 0.224*255, 0.229*255]
     transform = transforms.Compose([
-        transforms.Resize((256, 256)),
         ImageNetPolicy(),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
@@ -81,7 +80,7 @@ if __name__ == '__main__':
                         type=str, help='path to latest checkpoint (default: none)')
     parser.add_argument('--size', default='256', type=int,
                         help='CUDA_VISIBLE_DEVICES')
-    parser.add_argument('--image_dir', default='data/jpeg/train/',
+    parser.add_argument('--image_dir', default='data/resized-jpeg/train/',
                         type=str, help='Images folder path')
     parser.add_argument('--train_csv', default='data/train_split.csv',
                         type=str, help='list of training set')
@@ -89,7 +88,7 @@ if __name__ == '__main__':
                         type=str, help='list of validation set')
     parser.add_argument('--lr', default='0.0001',
                         type=float, help='learning rate')
-    parser.add_argument('--epochs', default='1',
+    parser.add_argument('--epochs', default='100',
                         type=int, help='Number of epochs')
     parser.add_argument('--batch_size', default='256',
                         type=int, help='Batch Size')

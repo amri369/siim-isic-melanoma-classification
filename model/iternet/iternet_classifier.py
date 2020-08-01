@@ -41,7 +41,7 @@ class IternetFeaturesExtractor(nn.Module):
     
 
 class Classifier(nn.Module):
-    def __init__(self, num_classes=2):
+    def __init__(self, num_classes=2, dim_data=9):
         super(Classifier, self).__init__()
         
         # add convolutions
@@ -58,7 +58,6 @@ class Classifier(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, num_classes)
         )
-
     def forward(self, x):
         x = self.down4(x)
         x = self.down5(x)
