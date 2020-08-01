@@ -17,10 +17,10 @@ class IdentityBi(nn.Module):
         
     def forward(self, x, y):
         return x
-
-class IternetClassifier(nn.Module):
-    def __init__(self, num_classes=2, path=None):
-        super(IternetClassifier, self).__init__()
+    
+class IternetFeaturesExtractor(nn.Module):
+    def __init__(self, path=None):
+        super(IternetFeaturesExtractor, self).__init__()
         features_extractor = Iternet(n_channels=3, n_classes=1, out_channels=32, iterations=3)
         
         # load pretrained weights
@@ -34,6 +34,15 @@ class IternetClassifier(nn.Module):
         features_extractor.model_miniunet[-1].up3 = IdentityBi()
         features_extractor.model_miniunet[-1].outc = Identity()
         self.features_extractor = features_extractor
+        
+    def forward(self, x):
+        x = self.features_extractor(x)
+        return x
+    
+
+class Classifier(nn.Module):
+    def __init__(self, num_classes=2):
+        super(Classifier, self).__init__()
         
         # add convolutions
         self.down4 = Down(256, 512)
@@ -51,7 +60,6 @@ class IternetClassifier(nn.Module):
         )
 
     def forward(self, x):
-        x = self.features_extractor(x)
         x = self.down4(x)
         x = self.down5(x)
         x = x.view(x.size(0), -1)

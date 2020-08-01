@@ -8,23 +8,23 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.dataset_melanoma import DatasetMelanoma as Dataset
 from augmentation.autoaugment import ImageNetPolicy
 import torchvision.transforms as transforms
-from model.iternet.iternet_classifier import IternetClassifier
+from model.iternet.iternet_classifier import IternetFeaturesExtractor, Classifier
 from trainer.trainer import Trainer
 import pandas as pd
 
 import argparse
 
-def main(args): 
-    #
+def main(args):
+    # data transformer
     mean = [104.00699, 116.66877, 122.67892]
     std = [0.225*255, 0.224*255, 0.229*255]
-    
     transform = transforms.Compose([
         transforms.Resize((256, 256)),
         ImageNetPolicy(),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
+    
     Transform = {'train': transform, 'val': transform}
     
     # set datasets
@@ -43,14 +43,16 @@ def main(args):
     dataloaders = {
         x: DataLoader(datasets[x], batch_size=args.batch_size, shuffle=True) for x in ['train', 'val']
     }
+    
+    # get the pretrained features extractor
+    features_extractor = IternetFeaturesExtractor(path=args.pretrained_checkpoint)
+    
+    # freeze the features extractor layers
+    for param in features_extractor.parameters():
+        param.requires_grad = False
 
     # initialize the model
-    model = IternetClassifier(num_classes=2, path=args.pretrained_checkpoint)
-        
-    # freeze the features extractor layers
-    if args.freeze:
-        for param in model.features_extractor.parameters():
-            param.requires_grad = False
+    model = Classifier(num_classes=2)
 
     # set loss function and optimizer
     criteria = FocalLoss()
@@ -60,7 +62,7 @@ def main(args):
     #
     writer = SummaryWriter('tensorboard/' + args.arch)
     # train the model
-    trainer = Trainer(model, criteria, optimizer,
+    trainer = Trainer(features_extractor, model, criteria, optimizer,
                       scheduler, args.gpus, args.seed, writer, args.resume)
     exp = os.path.join(args.model_dir, args.arch)
     trainer(dataloaders, args.epochs, exp)
@@ -69,14 +71,12 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Model Training')
-    parser.add_argument('--gpus', default='4,5,6,7',
+    parser.add_argument('--gpus', default='0,1,2,3,4,5,6,7,8,9,10,11',
                         type=str, help='CUDA_VISIBLE_DEVICES')
     parser.add_argument('--arch', default='iternet',
                         type=str, help='Architecture')
     parser.add_argument('--pretrained_checkpoint', default='../cancer-segmentation/exp/iternet/_epoch_99.pth', 
                         type=str, help='path to the pretrained model')
-    parser.add_argument('--freeze', action='store_true', 
-                        help='Freeze network except last layer')
     parser.add_argument('--resume', default='', 
                         type=str, help='path to latest checkpoint (default: none)')
     parser.add_argument('--size', default='256', type=int,
@@ -89,9 +89,9 @@ if __name__ == '__main__':
                         type=str, help='list of validation set')
     parser.add_argument('--lr', default='0.0001',
                         type=float, help='learning rate')
-    parser.add_argument('--epochs', default='2',
+    parser.add_argument('--epochs', default='1',
                         type=int, help='Number of epochs')
-    parser.add_argument('--batch_size', default='128',
+    parser.add_argument('--batch_size', default='256',
                         type=int, help='Batch Size')
     parser.add_argument('--model_dir', default='exp/',
                         type=str, help='Images folder path')

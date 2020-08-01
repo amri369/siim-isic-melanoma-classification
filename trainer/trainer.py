@@ -8,7 +8,8 @@ from trainer.evaluate import Evaluate
 
 class Trainer(object):
 
-    def __init__(self, model, criteria, optimizer, scheduler, gpus, seed, writer, resume=None):
+    def __init__(self, features_extractor, model, criteria, optimizer, scheduler, gpus, seed, writer, resume=None):
+        self.features_extractor = features_extractor
         self.model = model
         self.criteria = criteria
         self.optimizer = optimizer
@@ -54,7 +55,8 @@ class Trainer(object):
                 
             # predict
             with torch.set_grad_enabled(True):
-                z = self.model(x)
+                z = self.features_extractor(x)
+                z = self.model(z)
                 loss = self.criteria(z, y)
                 print('------l', loss.cpu().data.numpy())
                 
@@ -88,7 +90,8 @@ class Trainer(object):
             if self.is_gpu_available:
                 x, y = x.cuda(), y.cuda()
             with torch.set_grad_enabled(False):
-                z = self.model(x)
+                z = self.features_extractor(x)
+                z = self.model(z)
                 loss = self.criteria(z, y)
                 
             # evaluate
