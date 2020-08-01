@@ -23,10 +23,13 @@ class Trainer(object):
     def set_devices(self):
         if self.is_gpu_available:
             os.environ["CUDA_VISIBLE_DEVICES"] = self.gpus
+            self.features_extractor = self.features_extractor.cuda()
             self.model = self.model.cuda()
+            self.features_extractor = torch.nn.DataParallel(self.features_extractor)
             self.model = torch.nn.DataParallel(self.model)
             self.criteria = self.criteria.cuda()
         else:
+            self.features_extractor = self.features_extractor.cuda()
             self.model = self.model.cpu()
             self.criteria = self.criteria.cpu()
             
