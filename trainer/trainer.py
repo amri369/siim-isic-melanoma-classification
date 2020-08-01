@@ -23,6 +23,7 @@ class Trainer(object):
         if self.is_gpu_available:
             os.environ["CUDA_VISIBLE_DEVICES"] = self.gpus
             self.model = self.model.cuda()
+            self.model = torch.nn.DataParallel(self.model)
             self.criteria = self.criteria.cuda()
         else:
             self.model = self.model.cpu()
@@ -47,19 +48,19 @@ class Trainer(object):
         # loop over training set
         self.model.train()
         for x, y in dataloader:
-            # predict
+            # mount to GPU
             if self.is_gpu_available:
                 x, y = x.cuda(), y.cuda()
+                
+            # predict
             with torch.set_grad_enabled(True):
                 z = self.model(x)
-                #print('------y', y)
-                #print('------z', z)
-                #print('------y', y.shape)
-                #print('------z', z.shape)
                 loss = self.criteria(z, y)
+                print('------l', loss.cpu().data.numpy())
                 
             # evaluate
-            self.evaluate_train.step(nn.Sigmoid()(z)[:, 1], y, len(x))
+            #print('-------z', nn.Sigmoid()(z))
+            #self.evaluate_train.step(nn.Sigmoid()(z)[:, 1], y, len(x))
                 
             # back propagation
             self.optimizer.zero_grad()
@@ -91,7 +92,7 @@ class Trainer(object):
                 loss = self.criteria(z, y)
                 
             # evaluate
-            z = torch.sigmoid(z)
+            #z = torch.sigmoid(z)
             #self.evaluate_val.step(z, y, len(x))
             
             epoch_loss += loss.item() * len(x)
@@ -156,7 +157,7 @@ class Trainer(object):
             self.writer.add_scalar('Loss/train', train_loss, epoch)
             self.writer.add_scalar('Loss/val', val_loss, epoch)
             
-            keys = ['auc', 'acc', 'F1', 'SP', 'SE']
+            keys = ['auc', 'acc']
             #for key in keys:
             #    self.writer.add_scalar(key + '/train', self.evaluate_train.scalars[key], epoch)
             #    self.writer.add_scalar(key + '/val', self.evaluate_val.scalars[key], epoch)

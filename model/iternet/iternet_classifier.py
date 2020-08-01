@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
-from model.iternet.iternet_model import Iternet
+from .iternet_model import Iternet
 from collections import OrderedDict
+from .unet_parts import *
 
 class Identity(nn.Module):
     def __init__(self):
@@ -34,9 +35,13 @@ class IternetClassifier(nn.Module):
         features_extractor.model_miniunet[-1].outc = Identity()
         self.features_extractor = features_extractor
         
+        # add convolutions
+        self.down4 = Down(256, 512)
+        self.down5 = Down(512, 1024)
+        
         # add a classifier
         self.classifier = nn.Sequential(
-            nn.Linear(256 * 32 * 32, 4096),
+            nn.Linear(1024 * 8 * 8, 4096),
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -47,6 +52,8 @@ class IternetClassifier(nn.Module):
 
     def forward(self, x):
         x = self.features_extractor(x)
+        x = self.down4(x)
+        x = self.down5(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x

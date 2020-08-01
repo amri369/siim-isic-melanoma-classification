@@ -16,9 +16,24 @@ class DatasetMelanoma(Dataset):
             transform (callable, optional): Optional transform to be applied on images only.
         """
         self.annotation = df[[img_col, target_col]]
+        self.target_col = target_col
         self.image_dir = image_dir
         self.transform = transform
         self.target_transform = target_transform
+        self.get_weights()
+        
+    def get_weights(self):
+        # initialization
+        target = self.annotation[self.target_col]
+        num_classes = target.max() + 1
+        weights = []
+        
+        # vanilla weights
+        for idx in range(num_classes):
+            count = (target == idx).sum()
+            weights.append(1/count)
+            
+        self.weights = torch.FloatTensor(weights)
         
     def __len__(self):
         return len(self.annotation)

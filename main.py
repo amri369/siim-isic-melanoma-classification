@@ -91,7 +91,7 @@ if __name__ == '__main__':
                         type=float, help='learning rate')
     parser.add_argument('--epochs', default='2',
                         type=int, help='Number of epochs')
-    parser.add_argument('--batch_size', default='32',
+    parser.add_argument('--batch_size', default='128',
                         type=int, help='Batch Size')
     parser.add_argument('--model_dir', default='exp/',
                         type=str, help='Images folder path')
