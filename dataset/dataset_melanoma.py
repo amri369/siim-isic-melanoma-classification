@@ -27,12 +27,12 @@ class DatasetMelanoma(Dataset):
             transform (callable, optional): Optional transform to be applied on images only.
         """
         self.annotation = self.transform_df(df, age_col, mean_age, categ_cols)
+        self.targets = self.annotation[target_col].values
         self.img_col = img_col
         self.target_col = target_col
         self.image_dir = image_dir
         self.transform = transform
         self.target_transform = target_transform
-        self.get_weights()
         
     def transform_df(self, df, age_col, mean_age, categ_cols):
         df = df.copy()
@@ -42,18 +42,18 @@ class DatasetMelanoma(Dataset):
         df[age_col] = df[age_col] / mean_age
         return df
         
-    def get_weights(self):
+    def get_cls_num_list(self):
         # initialization
         target = self.annotation[self.target_col]
         num_classes = target.max() + 1
-        weights = []
+        cls_num_list = []
         
-        # vanilla weights
+        # number of samples per class
         for idx in range(num_classes):
             count = (target == idx).sum()
-            weights.append(1/count)
+            cls_num_list.append(count)
             
-        self.weights = torch.FloatTensor(weights)
+        return cls_num_list
         
     def __len__(self):
         return len(self.annotation)
