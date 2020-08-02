@@ -40,7 +40,7 @@ def get_weights(epoch, train_rule, dataset):
         per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
         per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'DRW':
-        idx = epoch // 50
+        idx = min(1, epoch // 160)
         betas = [0, 0.9999]
         effective_num = 1.0 - np.power(betas[idx], cls_num_list)
         per_cls_weights = (1.0 - betas[idx]) / np.array(effective_num)
@@ -109,14 +109,14 @@ def adjust_learning_rate(optimizer, epoch, lr):
     epoch = epoch + 1
     if epoch <= 10:
         lr = lr * epoch / 10
-    elif epoch > 10:
-        lr = lr * 0.1
+    elif epoch >= 160:
+        lr = lr * 0.0001
+    elif epoch > 80:
+        lr = lr * 0.001
     elif epoch > 20:
         lr = lr * 0.01
-    elif epoch > 30:
-        lr = lr * 0.001
-    elif epoch >= 50:
-        lr = lr * 0.0001
+    elif epoch > 10:
+        lr = lr * 0.1
     else:
         lr = lr
     for param_group in optimizer.param_groups:
@@ -174,11 +174,8 @@ def accuracy(output, target, topk=(1,)):
         return res
     
 def get_class_accuracy(all_targets, all_preds):
-    cf = confusion_matrix(all_targets, all_preds).astype(float)
-    cls_cnt = cf.sum(axis=1)
-    cls_hit = np.diag(cf)
-    cls_acc = cls_hit / cls_cnt
-    return cls_acc, cf
+    cf = confusion_matrix(all_targets, all_preds)
+    return cf
 
 def print_cm(cm, labels=[0, 1], hide_zeroes=False, hide_diagonal=False, hide_threshold=None):
     """pretty print for confusion matrixes"""

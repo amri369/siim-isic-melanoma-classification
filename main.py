@@ -4,20 +4,30 @@ from torch import nn
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 from dataset.dataset_melanoma import DatasetMelanoma as Dataset
-from augmentation.autoaugment import ImageNetPolicy
+from augmentation.autoaugment import *
 import torchvision.transforms as transforms
 from model.iternet.iternet_classifier import IternetFeaturesExtractor, Classifier
 from trainer.trainer import Trainer
 import pandas as pd
+from datetime import datetime
 
 import argparse
 
 def main(args):
+    # get the augmentation strategy
+    augmentation = {
+        'ImageNetPolicy': ImageNetPolicy(),
+        'CIFAR10Policy': CIFAR10Policy(),
+        'SVHNPolicy': SVHNPolicy()
+    }
+    augmentation = augmentation[args.augmentation]
+    
+    
     # data transformer
     mean = [104.00699, 116.66877, 122.67892]
     std = [0.225*255, 0.224*255, 0.229*255]
     transform = transforms.Compose([
-        ImageNetPolicy(),
+        augmentation,
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
@@ -50,7 +60,9 @@ def main(args):
     optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=1e-8, momentum=0.9)
     
     # initialize tensorboard writer
-    writer = SummaryWriter('tensorboard/' + args.arch)
+    now = str(datetime.now())
+    writer = SummaryWriter('tensorboard/' + now + '_lr_' + str(args.lr) + '_' 
+                           + args.loss_type + '_' + args.train_rule + '_' + args.augmentation)
     
     # initialize store_name
     store_name = '_'.join([args.loss_type, args.train_rule])
@@ -70,6 +82,8 @@ if __name__ == '__main__':
                         type=str, help='loss type')
     parser.add_argument('--train_rule', default='DRW', 
                         type=str, help='data sampling strategy for train loader')
+    parser.add_argument('--augmentation', default='ImageNetPolicy', 
+                        type=str, help='Augmentation strategy')
     parser.add_argument('--gpus', default='0,1,2,3,4',
                         type=str, help='CUDA_VISIBLE_DEVICES')
     parser.add_argument('--arch', default='iternet',

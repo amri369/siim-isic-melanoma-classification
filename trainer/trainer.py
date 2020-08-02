@@ -122,7 +122,7 @@ class Trainer(object):
         roc = roc_auc_score(all_targets, all_prob)
 
         # print confusion matrix and roc
-        _, cm = get_class_accuracy(all_targets, all_preds)
+        cm = get_class_accuracy(all_targets, all_preds)
         print('Training: ROC:', roc)
         print('Training: CM:', cm)
         
@@ -182,7 +182,7 @@ class Trainer(object):
             roc = roc_auc_score(all_targets, all_prob)
                 
             # print confusion matrix and roc
-            _, cm = get_class_accuracy(all_targets, all_preds)
+            cm = get_class_accuracy(all_targets, all_preds)
             print('Validation: ROC:', roc)
             print('Validation: CM:', cm)
         
@@ -212,7 +212,7 @@ class Trainer(object):
             self.optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})".format(resume, checkpoint['epoch']))
         else:
-            epoch = 0
+            epoch = None
         return epoch
 
     def __call__(self, epochs, model_dir):
@@ -221,7 +221,7 @@ class Trainer(object):
         self.set_devices()
         
         # resume checkpoint
-        if self.resume is not None:
+        if self.resume != '':
             start_epoch = self.resume_checkpoint()
         else:
             start_epoch = 0
