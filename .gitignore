@@ -5,3 +5,4 @@ exp/*
 *__pycache__/*
 tensorboard
 .DS_Store
+*.pyc

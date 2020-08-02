@@ -5,6 +5,7 @@ import torchvision
 import numpy as np
 import random
 from losses import LDAMLoss, FocalLoss
+from sklearn.metrics import confusion_matrix
 import warnings
 
 def get_sampler(train_rule):
@@ -39,7 +40,7 @@ def get_weights(epoch, train_rule, dataset):
         per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
         per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'DRW':
-        idx = epoch // 160
+        idx = epoch // 50
         betas = [0, 0.9999]
         effective_num = 1.0 - np.power(betas[idx], cls_num_list)
         per_cls_weights = (1.0 - betas[idx]) / np.array(effective_num)
@@ -106,12 +107,16 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
 def adjust_learning_rate(optimizer, epoch, lr):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
     epoch = epoch + 1
-    if epoch <= 5:
-        lr = lr * epoch / 5
-    elif epoch > 180:
-        lr = args.lr * 0.0001
-    elif epoch > 160:
+    if epoch <= 10:
+        lr = lr * epoch / 10
+    elif epoch > 10:
+        lr = lr * 0.1
+    elif epoch > 20:
         lr = lr * 0.01
+    elif epoch > 30:
+        lr = lr * 0.001
+    elif epoch >= 50:
+        lr = lr * 0.0001
     else:
         lr = lr
     for param_group in optimizer.param_groups:
@@ -167,3 +172,33 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
+    
+def get_class_accuracy(all_targets, all_preds):
+    cf = confusion_matrix(all_targets, all_preds).astype(float)
+    cls_cnt = cf.sum(axis=1)
+    cls_hit = np.diag(cf)
+    cls_acc = cls_hit / cls_cnt
+    return cls_acc, cf
+
+def print_cm(cm, labels=[0, 1], hide_zeroes=False, hide_diagonal=False, hide_threshold=None):
+    """pretty print for confusion matrixes"""
+    columnwidth = max([len(x) for x in labels]+[5]) # 5 is value length
+    empty_cell = " " * columnwidth
+    # Print header
+    print( "    " + empty_cell,)
+    for label in labels: 
+        print( "%{0}s".format(columnwidth) % label,)
+    print()
+    # Print rows
+    for i, label1 in enumerate(labels):
+        print( "    %{0}s".format(columnwidth) % label1,)
+        for j in range(len(labels)): 
+            cell = "%{0}.1f".format(columnwidth) % cm[i, j]
+            if hide_zeroes:
+                cell = cell if float(cm[i, j]) != 0 else empty_cell
+            if hide_diagonal:
+                cell = cell if i != j else empty_cell
+            if hide_threshold:
+                cell = cell if cm[i, j] > hide_threshold else empty_cell
+            print( cell,)
+        print()

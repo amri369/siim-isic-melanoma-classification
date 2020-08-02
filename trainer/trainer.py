@@ -6,7 +6,7 @@ import torch.nn as nn
 import numpy as np
 from trainer.utils import *
 import time
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import roc_auc_score
 
 class Trainer(object):
 
@@ -69,6 +69,12 @@ class Trainer(object):
 
         # loop over training set
         self.model.train()
+        softmax = torch.nn.Softmax(dim=1)
+        all_preds = []
+        all_targets = []
+        all_prob = []
+        
+        # train
         for i, ((x, _), y) in enumerate(self.train_loader):
             # measure data loading time
             data_time.update(time.time() - end)
@@ -97,6 +103,13 @@ class Trainer(object):
             batch_time.update(time.time() - end)
             end = time.time()
             
+            # record predictions
+            _, pred = torch.max(z, 1)
+            prob = softmax(z)
+            all_preds.extend(pred.cpu().numpy())
+            all_targets.extend(y.cpu().numpy())
+            all_prob.extend(prob[:,1].detach().cpu().numpy())
+            
             output = ('Epoch: [{0}][{1}/{2}], lr: {lr:.5f}\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
@@ -104,8 +117,16 @@ class Trainer(object):
                           epoch, i, len(self.train_loader), batch_time=batch_time,
                           data_time=data_time, loss=losses, lr=self.optimizer.param_groups[-1]['lr']))
             print(output)
+        
+        # calculate the roc
+        roc = roc_auc_score(all_targets, all_prob)
 
-        return loss.item(), acc1
+        # print confusion matrix and roc
+        _, cm = get_class_accuracy(all_targets, all_preds)
+        print('Training: ROC:', roc)
+        print('Training: CM:', cm)
+        
+        return loss.item(), acc1, roc
     
     def validation_step(self, epoch):
         mean = [104.00699, 116.66877, 122.67892]
@@ -116,9 +137,11 @@ class Trainer(object):
         losses = AverageMeter('Loss', ':.4e')
 
         # loop over validation set
+        softmax = torch.nn.Softmax(dim=1)
         self.model.eval()
         all_preds = []
         all_targets = []
+        all_prob = []
         
         # validate
         end = time.time()
@@ -141,9 +164,12 @@ class Trainer(object):
                 batch_time.update(time.time() - end)
                 end = time.time()
 
+                # record predictions
                 _, pred = torch.max(z, 1)
+                prob = softmax(z)
                 all_preds.extend(pred.cpu().numpy())
                 all_targets.extend(y.cpu().numpy())
+                all_prob.extend(prob[:,1].detach().cpu().numpy())
                 
                 # print loss and accuracy
                 output = ('Val: [{0}/{1}]\t'
@@ -152,22 +178,15 @@ class Trainer(object):
                           .format(i, len(self.val_loader), batch_time=batch_time, loss=losses))
                 print(output)
                 
-                # tensorboard
-                x[:, 0, :, :] = x[:, 0, :, :] * std[0] + mean[0]
-                x[:, 1, :, :] = x[:, 1, :, :] * std[1] + mean[1]
-                x[:, 2, :, :] = x[:, 2, :, :] * std[2] + mean[2]
-                img_grid = torchvision.utils.make_grid(x)
-                self.writer.add_image('Input images', img_grid, epoch)
+            # calculate the roc
+            roc = roc_auc_score(all_targets, all_prob)
                 
-            # print confusion matrix
-            cf = confusion_matrix(all_targets, all_preds).astype(float)
-            cls_cnt = cf.sum(axis=1)
-            cls_hit = np.diag(cf)
-            cls_acc = cls_hit / cls_cnt
-            out_cls_acc = 'Validation: Class Accuracy: %s'%((np.array2string(cls_acc, separator=',', 
-                                                                                 formatter={'float_kind':lambda x: "%.3f" % x})))
+            # print confusion matrix and roc
+            _, cm = get_class_accuracy(all_targets, all_preds)
+            print('Validation: ROC:', roc)
+            print('Validation: CM:', cm)
         
-        return loss.item(), acc1
+        return loss.item(), acc1, roc
 
     def save_checkpoint(self, epoch, model_dir):
         # create the state dictionary
@@ -210,8 +229,8 @@ class Trainer(object):
         for epoch in range(start_epoch, epochs):            
             # train and validate
             adjust_learning_rate(self.optimizer, epoch, self.lr)
-            train_loss, train_acc = self.training_step(epoch)
-            val_loss, val_acc = self.validation_step(epoch)
+            train_loss, train_acc, train_roc = self.training_step(epoch)
+            val_loss, val_acc, val_roc = self.validation_step(epoch)
             self.save_checkpoint(epoch, model_dir)
             
             # log metrics
@@ -219,6 +238,8 @@ class Trainer(object):
             self.writer.add_scalar('Loss/val', val_loss, epoch)
             self.writer.add_scalar('Acc/train', train_acc, epoch)
             self.writer.add_scalar('Acc/val', val_acc, epoch)
+            self.writer.add_scalar('ROC/train', train_roc, epoch)
+            self.writer.add_scalar('ROC/val', val_roc, epoch)
         
         self.writer.close()
             
