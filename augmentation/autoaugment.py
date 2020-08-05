@@ -1,8 +1,29 @@
+import torchvision.transforms as transforms
 from PIL import Image, ImageEnhance, ImageOps
 import numpy as np
 import random
 
+class Identity(object):
+    def __call__(self, x):
+        return x
 
+class Geometry(object):
+    def __init__(self, random_rotate=True, random_hflip=True, random_vflip=True, degrees=(-180, 180)):
+        degrees = degrees
+        rotate = Identity()
+        hflip = Identity()
+        vflip = Identity()
+        if random_rotate:
+            rotate = transforms.RandomAffine(degrees)
+        if random_hflip:
+            hflip = transforms.RandomHorizontalFlip()
+        if random_vflip:
+            vflip = transforms.RandomVerticalFlip()
+        self.transform = transforms.Compose([rotate, hflip, vflip])
+    
+    def __call__(self, x):
+        x = self.transform(x)       
+            
 class ImageNetPolicy(object):
     """ Randomly choose one of the best 24 Sub-policies on ImageNet.
 

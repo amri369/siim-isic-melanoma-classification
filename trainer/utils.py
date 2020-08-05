@@ -8,7 +8,7 @@ from losses import LDAMLoss, FocalLoss
 from sklearn.metrics import confusion_matrix
 import warnings
 
-def get_sampler(train_rule):
+def get_sampler(train_rule, dataset):
     if train_rule == 'None':
         train_sampler = None  
     elif train_rule == 'Resample':
@@ -30,17 +30,23 @@ def get_weights(epoch, train_rule, dataset):
 
     # get sampler and weights
     if train_rule == 'None':
-        per_cls_weights = None
+        per_cls_weights = np.array([1, 1])
+        per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 
+        per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'Resample':
-        per_cls_weights = None
+        per_cls_weights = np.array([1, 1])
+        per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 
+        per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'Reweight':
-        beta = 0.9999
-        effective_num = 1.0 - np.power(beta, cls_num_list)
-        per_cls_weights = (1.0 - beta) / np.array(effective_num)
-        per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
+        #beta = 0.9999
+        #effective_num = 1.0 - np.power(beta, cls_num_list)
+        #per_cls_weights = (1.0 - beta) / np.array(effective_num)
+        #per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
+        per_cls_weights = np.array([1, 5])
+        per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 
         per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'DRW':
-        idx = min(1, epoch // 160)
+        idx = min(1, epoch // 20)
         betas = [0, 0.9999]
         effective_num = 1.0 - np.power(betas[idx], cls_num_list)
         per_cls_weights = (1.0 - betas[idx]) / np.array(effective_num)
@@ -110,11 +116,11 @@ def adjust_learning_rate(optimizer, epoch, lr):
     if epoch <= 10:
         lr = lr * epoch / 10
     elif epoch >= 160:
-        lr = lr * 0.0001
-    elif epoch > 80:
         lr = lr * 0.001
-    elif epoch > 20:
+    elif epoch > 40:
         lr = lr * 0.01
+    elif epoch > 20:
+        lr = lr * 0.1
     elif epoch > 10:
         lr = lr * 0.1
     else:

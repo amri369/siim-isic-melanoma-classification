@@ -29,13 +29,13 @@ class Trainer(object):
         self.train_rule = train_rule
         
         # initialize dataloders
-        train_sampler = get_sampler(train_rule)
+        train_sampler = get_sampler(train_rule, self.datasets['train'])
         self.train_loader = DataLoader(
             datasets['train'], batch_size=batch_size, shuffle=(train_sampler is None),
             num_workers=workers, pin_memory=True, sampler=train_sampler)
         self.val_loader = DataLoader(
             datasets['val'], batch_size=batch_size, shuffle=False,
-            num_workers=workers, pin_memory=True, sampler=train_sampler)
+            num_workers=workers, pin_memory=True, sampler=None)
         
 
     def set_devices(self):
@@ -110,7 +110,7 @@ class Trainer(object):
             all_targets.extend(y.cpu().numpy())
             all_prob.extend(prob[:,1].detach().cpu().numpy())
             
-            output = ('Epoch: [{0}][{1}/{2}], lr: {lr:.5f}\t'
+            output = ('Epoch: [{0}][{1}/{2}], lr: {lr:.8f}\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})'.format(
@@ -204,10 +204,10 @@ class Trainer(object):
         
     def resume_checkpoint(self):
         resume = self.resume
-        if os.path.isfile(self.resume):
+        if os.path.isfile(resume):
             print("=> loading checkpoint '{}'".format(resume))
             checkpoint = torch.load(resume, map_location='cuda:0')
-            epoch = checkpoint['epoch']
+            epoch = checkpoint['epoch'] + 1
             self.model.load_state_dict(checkpoint['state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
             print("=> loaded checkpoint '{}' (epoch {})".format(resume, checkpoint['epoch']))

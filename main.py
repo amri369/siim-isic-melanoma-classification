@@ -18,7 +18,8 @@ def main(args):
     augmentation = {
         'ImageNetPolicy': ImageNetPolicy(),
         'CIFAR10Policy': CIFAR10Policy(),
-        'SVHNPolicy': SVHNPolicy()
+        'SVHNPolicy': SVHNPolicy(),
+        'Geometry': Geometry()
     }
     augmentation = augmentation[args.augmentation]
     
@@ -26,13 +27,16 @@ def main(args):
     # data transformer
     mean = [104.00699, 116.66877, 122.67892]
     std = [0.225*255, 0.224*255, 0.229*255]
-    transform = transforms.Compose([
+    transform_train = transforms.Compose([
         augmentation,
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
-    
-    Transform = {'train': transform, 'val': transform}
+    transform_val = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=mean, std=std)
+    ])
+    Transform = {'train': transform_train, 'val': transform_val}
     
     # set datasets
     dataframe = {
@@ -60,29 +64,43 @@ def main(args):
     optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=1e-8, momentum=0.9)
     
     # initialize tensorboard writer
-    now = str(datetime.now())
-    writer = SummaryWriter('tensorboard/' + now + '_lr_' + str(args.lr) + '_' 
-                           + args.loss_type + '_' + args.train_rule + '_' + args.augmentation)
+    now = str(datetime.now()).replace(" ", "_")
+    experiment_type = now + '_lr_' + str(args.lr) + '_' + args.loss_type + '_' + args.train_rule + '_' + args.augmentation
+    writer = SummaryWriter('tensorboard/' + experiment_type)
+    
+    # log hyperparameters
+    dic = args.__dict__
+    i = 1
+    for key in dic:
+        writer.add_text(key, str(dic[key]), i)
+        i += 1
     
     # initialize store_name
     store_name = '_'.join([args.loss_type, args.train_rule])
+    exp = os.path.join(args.model_dir, experiment_type)
+    writer.add_text('Models dir', exp, 0)
+    try:
+        os.mkdir(exp)
+    except:
+        pass
     
-    # train the model
+    # initialize a training instance
     trainer = Trainer(datasets, features_extractor, model, 
                       args.loss_type, optimizer=optimizer, lr=args.lr, 
                       batch_size=args.batch_size, gpus=args.gpus, 
                       workers=args.workers, seed=args.seed, writer=writer, 
                       store_name=store_name, resume=args.resume, train_rule=args.train_rule)
-    exp = os.path.join(args.model_dir, args.arch)
+    
+    # train the model
     trainer(args.epochs, exp)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Model Training')
-    parser.add_argument('--loss_type', default="LDAM", 
+    parser.add_argument('--loss_type', default="Focal", 
                         type=str, help='loss type')
     parser.add_argument('--train_rule', default='DRW', 
                         type=str, help='data sampling strategy for train loader')
-    parser.add_argument('--augmentation', default='ImageNetPolicy', 
+    parser.add_argument('--augmentation', default='Geometry', 
                         type=str, help='Augmentation strategy')
     parser.add_argument('--gpus', default='0,1,2,3,4',
                         type=str, help='CUDA_VISIBLE_DEVICES')
@@ -100,9 +118,9 @@ if __name__ == '__main__':
                         type=str, help='list of training set')
     parser.add_argument('--val_csv', default='data/val_split.csv',
                         type=str, help='list of validation set')
-    parser.add_argument('--lr', default='0.001',
+    parser.add_argument('--lr', default='0.01',
                         type=float, help='learning rate')
-    parser.add_argument('--epochs', default='300',
+    parser.add_argument('--epochs', default='200',
                         type=int, help='Number of epochs')
     parser.add_argument('--batch_size', default='256',
                         type=int, help='Batch Size')
