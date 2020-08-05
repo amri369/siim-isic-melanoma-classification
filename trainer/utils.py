@@ -206,7 +206,7 @@ def print_cm(cm, labels=[0, 1], hide_zeroes=False, hide_diagonal=False, hide_thr
             print( cell,)
         print()
         
-class ImbalancedDatasetSampler_0(torch.utils.data.sampler.Sampler):
+class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
 
     def __init__(self, dataset, indices=None, num_samples=None):
                 
