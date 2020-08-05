@@ -47,7 +47,7 @@ def main(args):
     datasets = {
         x: Dataset(df=dataframe[x],
                    image_dir=args.image_dir,
-                   transform=transform) for x in ['train', 'val']
+                   transform=Transform[x]) for x in ['train', 'val']
     }
     
     # get the pretrained features extractor

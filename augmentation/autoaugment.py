@@ -22,7 +22,8 @@ class Geometry(object):
         self.transform = transforms.Compose([rotate, hflip, vflip])
     
     def __call__(self, x):
-        x = self.transform(x)       
+        x = self.transform(x)
+        return x
             
 class ImageNetPolicy(object):
     """ Randomly choose one of the best 24 Sub-policies on ImageNet.

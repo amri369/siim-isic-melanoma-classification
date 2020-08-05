@@ -72,7 +72,7 @@ def get_criteria(loss_type, cls_num_list, per_cls_weights):
     return criterion
     
 
-class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
+class ImbalancedDatasetSampler_0(torch.utils.data.sampler.Sampler):
 
     def __init__(self, dataset, indices=None, num_samples=None):
                 
@@ -112,19 +112,19 @@ class ImbalancedDatasetSampler(torch.utils.data.sampler.Sampler):
 
 def adjust_learning_rate(optimizer, epoch, lr):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    epoch = epoch + 1
-    if epoch <= 10:
-        lr = lr * epoch / 10
-    elif epoch >= 160:
-        lr = lr * 0.001
-    elif epoch > 40:
-        lr = lr * 0.01
-    elif epoch > 20:
-        lr = lr * 0.1
-    elif epoch > 10:
-        lr = lr * 0.1
-    else:
-        lr = lr
+    #epoch = epoch + 1
+    #if epoch <= 10:
+    #    lr = lr * epoch / 10
+    #elif epoch >= 160:
+    #    lr = lr * 0.001
+    #elif epoch > 40:
+    #    lr = lr * 0.01
+    #elif epoch > 20:
+    #    lr = lr * 0.1
+    #elif epoch > 10:
+    #    lr = lr * 0.1
+    #else:
+    #    lr = lr
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
         
@@ -205,3 +205,40 @@ def print_cm(cm, labels=[0, 1], hide_zeroes=False, hide_diagonal=False, hide_thr
                 cell = cell if cm[i, j] > hide_threshold else empty_cell
             print( cell,)
         print()
+        
+class ImbalancedDatasetSampler_0(torch.utils.data.sampler.Sampler):
+
+    def __init__(self, dataset, indices=None, num_samples=None):
+                
+        # if indices is not provided, 
+        # all elements in the dataset will be considered
+        self.indices = list(range(len(dataset))) \
+            if indices is None else indices
+            
+        # if num_samples is not provided, 
+        # draw `len(indices)` samples in each iteration
+        self.num_samples = len(self.indices) \
+            if num_samples is None else num_samples
+            
+        # distribution of classes in the dataset 
+        label_to_count = {}
+        for idx in self.indices:
+            label = self._get_label(dataset, idx)
+            if label in label_to_count:
+                label_to_count[label] += 1
+            else:
+                label_to_count[label] = 1
+                
+        # weight for each sample
+        weights = [1.0 / label_to_count[self._get_label(dataset, idx)]
+                   for idx in self.indices]
+        self.weights = torch.DoubleTensor(weights)
+        
+    def _get_label(self, dataset, idx):
+        return dataset.targets[idx]
+                
+    def __iter__(self):
+        return iter(torch.multinomial(self.weights, self.num_samples, replacement=True).tolist())
+
+    def __len__(self):
+        return self.num_samples
