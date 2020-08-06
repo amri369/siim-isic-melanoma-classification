@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torchvision.models as models
 from .iternet_model import Iternet
 from collections import OrderedDict
 from .unet_parts import *
@@ -41,7 +42,7 @@ class IternetFeaturesExtractor(nn.Module):
     
 
 class Classifier(nn.Module):
-    def __init__(self, num_classes=2, dim_data=9):
+    def __init__(self, num_classes=2):
         super(Classifier, self).__init__()
         
         # add convolutions
@@ -58,7 +59,7 @@ class Classifier(nn.Module):
             nn.Dropout(),
             nn.Linear(4096, num_classes)
         )
-    def forward(self, x):
+    def forward(self, x, data):
         x = self.down4(x)
         x = self.down5(x)
         x = x.view(x.size(0), -1)
@@ -73,3 +74,25 @@ def load_pretrained_weights(path):
         new_state_dict[name] = v
     
     return new_state_dict
+
+class IternetClassifier(nn.Module):
+    def __init__(self, path=None, num_classes=2, freeze=True):
+        super(IternetClassifier, self).__init__()
+        
+        # get the classifier 
+        self.classifier = Classifier(num_classes=num_classes)
+        
+        # get the pretrained features extractor
+        features_extractor = IternetFeaturesExtractor(path)
+    
+        # freeze the features extractor layers
+        if freeze:
+            for param in features_extractor.parameters():
+                param.requires_grad = False
+        self.features_extractor = features_extractor
+
+    def forward(self, x):
+        x = self.features_extractor(x)
+        x = self.classifier(x)
+        
+        return x

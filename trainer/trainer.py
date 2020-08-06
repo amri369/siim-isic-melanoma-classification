@@ -10,13 +10,14 @@ from sklearn.metrics import roc_auc_score
 
 class Trainer(object):
 
-    def __init__(self, datasets, features_extractor, model, 
-                 loss_type, optimizer, lr,batch_size, gpus, workers, seed, writer, 
-                 store_name='', resume=None, train_rule=None):
+    def __init__(self, datasets, model, features_extractor, 
+                 loss_type, optimizer, lr, 
+                 batch_size, gpus, workers, seed, writer, 
+                 store_name='', resume=None, train_rule='None'):
         self.datasets = datasets
         self.cls_num_list = self.datasets['train'].get_cls_num_list()
-        self.features_extractor = features_extractor
         self.model = model
+        self.features_extractor = features_extractor
         self.loss_type = loss_type
         self.optimizer = optimizer
         self.lr = lr
@@ -34,7 +35,7 @@ class Trainer(object):
             datasets['train'], batch_size=batch_size, shuffle=(train_sampler is None),
             num_workers=workers, pin_memory=True, sampler=train_sampler)
         self.val_loader = DataLoader(
-            datasets['val'], batch_size=batch_size, shuffle=False,
+            datasets['val'], batch_size=512, shuffle=False,
             num_workers=workers, pin_memory=True, sampler=None)
         
 
@@ -46,7 +47,7 @@ class Trainer(object):
             self.features_extractor = torch.nn.DataParallel(self.features_extractor)
             self.model = torch.nn.DataParallel(self.model)
         else:
-            self.features_extractor = self.features_extractor.cuda()
+            self.features_extractor = self.features_extractor.cpu()
             self.model = self.model.cpu()
 
     def training_step(self, epoch):
@@ -75,18 +76,18 @@ class Trainer(object):
         all_prob = []
         
         # train
-        for i, ((x, _), y) in enumerate(self.train_loader):
+        for i, ((x, data), y) in enumerate(self.train_loader):
             # measure data loading time
             data_time.update(time.time() - end)
         
             # mount to GPU
             if self.is_gpu_available:
-                x, y = x.cuda(), y.cuda()
+                x, data, y = x.cuda(), data.cuda(), y.cuda()
                 
             # predict
             with torch.set_grad_enabled(True):
-                z = self.features_extractor(x)  
-                z = self.model(z)
+                z = self.features_extractor(x)
+                z = self.model(z, data)
                 loss = self.criterion(z, y)
                 
             # measure accuracy and record loss
@@ -146,13 +147,13 @@ class Trainer(object):
         # validate
         end = time.time()
         with torch.no_grad():
-            for i, ((x, _), y) in enumerate(self.val_loader):
+            for i, ((x, data), y) in enumerate(self.val_loader):
                 # predict
                 if self.is_gpu_available:
-                    x, y = x.cuda(), y.cuda()
-
+                    x, data, y = x.cuda(), data.cuda(), y.cuda()
+                    
                 z = self.features_extractor(x)
-                z = self.model(z)
+                z = self.model(z, data)
                 loss = self.criterion(z, y)
 
                 # measure accuracy and record loss
@@ -216,6 +217,9 @@ class Trainer(object):
         return epoch
 
     def __call__(self, epochs, model_dir):
+        # evaluation mode all the time for the features extractor
+        self.features_extractor.eval()
+        
         # preparation
         set_seed(self.seed)
         self.set_devices()

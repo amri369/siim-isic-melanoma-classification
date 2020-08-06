@@ -36,7 +36,10 @@ def main(args):
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=std)
     ])
-    Transform = {'train': transform_train, 'val': transform_val}
+    Transform = {
+        'train': transform_train, 
+        'val': transform_val
+    }
     
     # set datasets
     dataframe = {
@@ -85,7 +88,7 @@ def main(args):
         pass
     
     # initialize a training instance
-    trainer = Trainer(datasets, features_extractor, model, 
+    trainer = Trainer(datasets, model, features_extractor,
                       args.loss_type, optimizer=optimizer, lr=args.lr, 
                       batch_size=args.batch_size, gpus=args.gpus, 
                       workers=args.workers, seed=args.seed, writer=writer, 
@@ -118,7 +121,7 @@ if __name__ == '__main__':
                         type=str, help='list of training set')
     parser.add_argument('--val_csv', default='data/val_split.csv',
                         type=str, help='list of validation set')
-    parser.add_argument('--lr', default='0.01',
+    parser.add_argument('--lr', default='0.001',
                         type=float, help='learning rate')
     parser.add_argument('--epochs', default='200',
                         type=int, help='Number of epochs')
