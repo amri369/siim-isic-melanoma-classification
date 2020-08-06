@@ -66,6 +66,43 @@ class Classifier(nn.Module):
         x = self.classifier(x)
         return x
 
+class ClassifierData(nn.Module):
+    def __init__(self, num_classes=2, data_dim=9):
+        super(ClassifierData, self).__init__()
+        
+        # add convolutions
+        self.down4 = Down(256, 512)
+        self.down5 = Down(512, 1024)
+        
+        # add a sequence for deep features
+        self.classifier_1 = nn.Sequential(
+            nn.Linear(1024 * 8 * 8, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 512)
+        )
+        
+        # add a sequence to combine deep features and data
+        self.classifier_2 = nn.Sequential(
+            nn.Linear(512 + data_dim, 256),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(256, num_classes)
+        )
+        
+    def forward(self, x, data):
+        x = self.down4(x)
+        x = self.down5(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier_1(x)
+        x = x.view(x.size(0), -1)
+        x = torch.cat([x, data], dim=1)
+        x = self.classifier_2(x)
+        return x
+
 def load_pretrained_weights(path):
     state_dict = torch.load(path, map_location=torch.device('cpu'))['state_dict']
     new_state_dict = OrderedDict()

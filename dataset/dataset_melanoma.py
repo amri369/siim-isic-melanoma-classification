@@ -26,6 +26,7 @@ class DatasetMelanoma(Dataset):
             img_col (string): column name containing images names.
             transform (callable, optional): Optional transform to be applied on images only.
         """
+        df = impute(df)
         self.annotation = self.transform_df(df, age_col, mean_age, categ_cols)
         self.targets = self.annotation[target_col].values
         self.img_col = img_col
@@ -77,9 +78,16 @@ class DatasetMelanoma(Dataset):
             target = self.target_transform(target)
         
         data = np.array(data, dtype=np.float)
+        assert not np.any(np.isnan(data))
         data = torch.from_numpy(data).float()
         
         target = np.asarray(target)
         target = torch.from_numpy(target).long()
         
         return (img, data), target
+
+def impute(df):
+    df = df.copy()
+    df['sex'].fillna('female', inplace=True)
+    df['age_approx'].fillna(df['age_approx'].mean(), inplace=True)
+    return df

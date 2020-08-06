@@ -6,7 +6,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.dataset_melanoma import DatasetMelanoma as Dataset
 from augmentation.autoaugment import *
 import torchvision.transforms as transforms
-from model.iternet.iternet_classifier import IternetFeaturesExtractor, Classifier
+from model.iternet.iternet_classifier import IternetFeaturesExtractor, Classifier, ClassifierData
 from trainer.trainer import Trainer
 import pandas as pd
 from datetime import datetime
@@ -61,13 +61,17 @@ def main(args):
         param.requires_grad = False
 
     # initialize the model
-    model = Classifier(num_classes=2)
+    if args.arch == 'iternet':
+        model = Classifier(num_classes=2)
+    elif args.arch == 'iternet_data':
+        model = ClassifierData(num_classes=2)
+    print('---------arch', args.arch)
 
     # set optimizer
     optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=1e-8, momentum=0.9)
     
     # initialize tensorboard writer
-    now = str(datetime.now()).replace(" ", "_")
+    now = str(datetime.now()).replace(" ", "_")replace(":", "_")
     experiment_type = now + '_lr_' + str(args.lr) + '_' + args.loss_type + '_' + args.train_rule + '_' + args.augmentation
     writer = SummaryWriter('tensorboard/' + experiment_type)
     
