@@ -1,0 +1,4 @@
+image_name,patient_id,sex,age_approx,anatom_site_general_challenge,diagnosis,benign_malignant,target
+ISIC_3587744,IP_5917089,male,70.0,torso,lentigo NOS,benign,0
+ISIC_5719183,IP_5917089,male,70.0,torso,lentigo NOS,benign,0
+ISIC_8270405,IP_5917089,male,70.0,torso,nevus,benign,0

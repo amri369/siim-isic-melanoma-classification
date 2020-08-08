@@ -24,6 +24,27 @@ class Geometry(object):
     def __call__(self, x):
         x = self.transform(x)
         return x
+    
+class GeometryContrast(object):
+    def __init__(self, random_rotate=True, random_hflip=True, random_vflip=True, random_color=True, degrees=(-180, 180)):
+        degrees = degrees
+        rotate = Identity()
+        hflip = Identity()
+        vflip = Identity()
+        random_color = Identity()
+        if random_rotate:
+            rotate = transforms.RandomAffine(degrees)
+        if random_hflip:
+            hflip = transforms.RandomHorizontalFlip()
+        if random_vflip:
+            vflip = transforms.RandomVerticalFlip()
+        if random_color:
+            color = transforms.ColorJitter(brightness=32. / 255.,saturation=0.5)
+        self.transform = transforms.Compose([rotate, hflip, vflip, color])
+    
+    def __call__(self, x):
+        x = self.transform(x)
+        return x
             
 class ImageNetPolicy(object):
     """ Randomly choose one of the best 24 Sub-policies on ImageNet.

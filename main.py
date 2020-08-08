@@ -19,7 +19,8 @@ def main(args):
         'ImageNetPolicy': ImageNetPolicy(),
         'CIFAR10Policy': CIFAR10Policy(),
         'SVHNPolicy': SVHNPolicy(),
-        'Geometry': Geometry()
+        'Geometry': Geometry(),
+        'GeometryContrast': GeometryContrast()
     }
     augmentation = augmentation[args.augmentation]
     
@@ -71,8 +72,9 @@ def main(args):
     optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=1e-8, momentum=0.9)
     
     # initialize tensorboard writer
-    now = str(datetime.now()).replace(" ", "_")replace(":", "_")
+    now = str(datetime.now()).replace(" ", "_").replace(":", "_")
     experiment_type = now + '_lr_' + str(args.lr) + '_' + args.loss_type + '_' + args.train_rule + '_' + args.augmentation
+    experiment_type = experiment_type.replace(".", "_")
     writer = SummaryWriter('tensorboard/' + experiment_type)
     
     # log hyperparameters
@@ -84,6 +86,7 @@ def main(args):
     
     # initialize store_name
     store_name = '_'.join([args.loss_type, args.train_rule])
+    store_name = store_name.replace(".", "_")
     exp = os.path.join(args.model_dir, experiment_type)
     writer.add_text('Models dir', exp, 0)
     try:

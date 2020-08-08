@@ -9,22 +9,14 @@ from sklearn.metrics import confusion_matrix
 import warnings
 
 def get_sampler(train_rule, dataset):
-    if train_rule == 'None':
-        train_sampler = None  
-    elif train_rule == 'Resample':
+    if train_rule == 'Resample':
         train_sampler = ImbalancedDatasetSampler(dataset)
-    elif train_rule == 'Reweight':
-        train_sampler = None
-    elif train_rule == 'DRW':
-        train_sampler = None
     else:
-        warnings.warn('Sample rule is not listed')
-        return
-        
+        train_sampler = None        
     return train_sampler
     
     
-def get_weights(epoch, train_rule, dataset):
+def get_weights(epoch, train_rule, dataset, k=1):
     # get number of samples per class
     cls_num_list = dataset.get_cls_num_list()
 
@@ -32,11 +24,9 @@ def get_weights(epoch, train_rule, dataset):
     if train_rule == 'None':
         per_cls_weights = np.array([1, 1])
         per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 
-        per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'Resample':
         per_cls_weights = np.array([1, 1])
         per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 
-        per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'Reweight':
         #beta = 0.9999
         #effective_num = 1.0 - np.power(beta, cls_num_list)
@@ -44,17 +34,21 @@ def get_weights(epoch, train_rule, dataset):
         #per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
         per_cls_weights = np.array([1, 5])
         per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 
-        per_cls_weights = torch.FloatTensor(per_cls_weights)
     elif train_rule == 'DRW':
         idx = min(1, epoch // 20)
         betas = [0, 0.9999]
         effective_num = 1.0 - np.power(betas[idx], cls_num_list)
         per_cls_weights = (1.0 - betas[idx]) / np.array(effective_num)
         per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
-        per_cls_weights = torch.FloatTensor(per_cls_weights)
+    elif train_rule == 'Power':
+        cls_num_list = np.array(cls_num_list, dtype=np.float) + 1E-4
+        per_cls_weights = cls_num_list.sum() / cls_num_list
+        per_cls_weights = np.power(per_cls_weights, k)
     else:
         warnings.warn('Sample rule is not listed')
         return
+    
+    per_cls_weights = torch.FloatTensor(per_cls_weights)
     
     return per_cls_weights
 

@@ -128,8 +128,30 @@ class IternetClassifier(nn.Module):
                 param.requires_grad = False
         self.features_extractor = features_extractor
 
-    def forward(self, x):
+    def forward(self, x, data):
         x = self.features_extractor(x)
-        x = self.classifier(x)
+        x = self.classifier(x, data)
+        
+        return x
+    
+class IternetClassifierData(nn.Module):
+    def __init__(self, path=None, num_classes=2, freeze=True):
+        super(IternetClassifierData, self).__init__()
+        
+        # get the classifier 
+        self.classifier = ClassifierData(num_classes=num_classes)
+        
+        # get the pretrained features extractor
+        features_extractor = IternetFeaturesExtractor(path)
+    
+        # freeze the features extractor layers
+        if freeze:
+            for param in features_extractor.parameters():
+                param.requires_grad = False
+        self.features_extractor = features_extractor
+
+    def forward(self, x, data):
+        x = self.features_extractor(x)
+        x = self.classifier(x, data)
         
         return x
