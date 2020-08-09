@@ -184,8 +184,8 @@ class Trainer(object):
 
         # print confusion matrix and roc
         cm = get_class_accuracy(all_targets, all_preds)
-        print('Training: ROC:', metrics['ROC'])
-        print('Training: CM:', cm)
+        print('Val: ROC:', metrics['ROC'])
+        print('Val: CM:', cm)
         
         return loss.item(), acc1, metrics
 

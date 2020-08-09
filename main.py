@@ -14,6 +14,12 @@ from datetime import datetime
 import argparse
 
 def main(args):
+    # get model and features extractor
+    features_extractor, model, size = get_features_extractor_model(args.arch, num_classes=2, 
+                                                             features_extractor_path=args.features_extractor_resume, 
+                                                             classifier_path=None, 
+                                                             freeze=not args.unfreeze)
+    
     # get the augmentation strategy
     augmentation = {
         'ImageNetPolicy': ImageNetPolicy(),
@@ -39,7 +45,6 @@ def main(args):
         ])
     
     # resizer if necessary
-    size = args.size
     if size != 256:
         print('-----Image resized to', size)
         transform_train = transforms.Compose([
@@ -59,8 +64,8 @@ def main(args):
     
     # set datasets
     dataframe = {
-        'train': pd.read_csv(args.train_csv)[:1024],
-        'val': pd.read_csv(args.val_csv)[:1024]
+        'train': pd.read_csv(args.train_csv),
+        'val': pd.read_csv(args.val_csv)
     }
     
     datasets = {
@@ -69,18 +74,12 @@ def main(args):
                    transform=Transform[x]) for x in ['train', 'val']
     }
     
-    # get model and features extractor
-    features_extractor, model = get_features_extractor_model(args.arch, num_classes=2, 
-                                                             features_extractor_path=args.features_extractor_resume, 
-                                                             classifier_path=None, 
-                                                             freeze=not args.unfreeze)
-    
     # set optimizer
     optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=1e-8, momentum=0.9)
     
     # initialize tensorboard writer
     now = str(datetime.now()).replace(" ", "_").replace(":", "_")
-    experiment_type = 'arch_' + args.arch + '_lr_' + str(args.lr) + '_' + args.loss_type + '_' + args.train_rule + '_' + args.augmentation + '_' + now
+    experiment_type = args.arch + '_lr_' + str(args.lr) + '_' + args.loss_type + '_' + args.train_rule + '_' + args.augmentation + '_' + now
     experiment_type = experiment_type.replace(".", "_")
     writer = SummaryWriter('tensorboard/' + experiment_type)
     
@@ -128,8 +127,6 @@ if __name__ == '__main__':
                         type=str, help='path to the pretrained model')
     parser.add_argument('--resume', default='', 
                         type=str, help='path to latest checkpoint (default: none)')
-    parser.add_argument('--size', default='256', type=int,
-                        help='Image size')
     parser.add_argument('--image_dir', default='data/resized-jpeg/train/',
                         type=str, help='Images folder path')
     parser.add_argument('--train_csv', default='data/train_split.csv',
