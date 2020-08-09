@@ -130,7 +130,7 @@ class IternetClassifier(nn.Module):
 
     def forward(self, x, data):
         x = self.features_extractor(x)
-        x = self.classifier(x, data)
+        x = self.classifier(x, 0*data)
         
         return x
     

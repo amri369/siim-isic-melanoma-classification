@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=9,10,11,12,13,14,15 python main.py --gpus 9,10,11,12,13,14,15 --train_rule Resample --batch_size 256 --augmentation GeometryContrast --epochs 2 --arch efficientnet-b7 --train_csv data/train_split.csv --val_csv data/val_split.csv --model_dir exp/efficientnet-b7-K1 --size 224

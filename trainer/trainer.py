@@ -5,8 +5,8 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import numpy as np
 from trainer.utils import *
+from trainer.evaluate import get_metrics
 import time
-from sklearn.metrics import roc_auc_score
 
 class Trainer(object):
 
@@ -119,15 +119,15 @@ class Trainer(object):
                           data_time=data_time, loss=losses, lr=self.optimizer.param_groups[-1]['lr']))
             print(output)
         
-        # calculate the roc
-        roc = roc_auc_score(all_targets, all_prob)
+        # calculate metrics
+        metrics = get_metrics(all_targets, all_prob)
 
         # print confusion matrix and roc
         cm = get_class_accuracy(all_targets, all_preds)
-        print('Training: ROC:', roc)
+        print('Training: ROC:', metrics['ROC'])
         print('Training: CM:', cm)
         
-        return loss.item(), acc1, roc
+        return loss.item(), acc1, metrics
     
     def validation_step(self, epoch):
         mean = [104.00699, 116.66877, 122.67892]
@@ -179,15 +179,15 @@ class Trainer(object):
                           .format(i, len(self.val_loader), batch_time=batch_time, loss=losses))
                 print(output)
                 
-            # calculate the roc
-            roc = roc_auc_score(all_targets, all_prob)
-                
-            # print confusion matrix and roc
-            cm = get_class_accuracy(all_targets, all_preds)
-            print('Validation: ROC:', roc)
-            print('Validation: CM:', cm)
+        # calculate metrics
+        metrics = get_metrics(all_targets, all_prob)
+
+        # print confusion matrix and roc
+        cm = get_class_accuracy(all_targets, all_preds)
+        print('Training: ROC:', metrics['ROC'])
+        print('Training: CM:', cm)
         
-        return loss.item(), acc1, roc
+        return loss.item(), acc1, metrics
 
     def save_checkpoint(self, epoch, model_dir):
         # create the state dictionary
@@ -233,8 +233,8 @@ class Trainer(object):
         for epoch in range(start_epoch, epochs):            
             # train and validate
             adjust_learning_rate(self.optimizer, epoch, self.lr)
-            train_loss, train_acc, train_roc = self.training_step(epoch)
-            val_loss, val_acc, val_roc = self.validation_step(epoch)
+            train_loss, train_acc, metrics_train = self.training_step(epoch)
+            val_loss, val_acc, metrics_val = self.validation_step(epoch)
             self.save_checkpoint(epoch, model_dir)
             
             # log metrics
@@ -242,8 +242,9 @@ class Trainer(object):
             self.writer.add_scalar('Loss/val', val_loss, epoch)
             self.writer.add_scalar('Acc/train', train_acc, epoch)
             self.writer.add_scalar('Acc/val', val_acc, epoch)
-            self.writer.add_scalar('ROC/train', train_roc, epoch)
-            self.writer.add_scalar('ROC/val', val_roc, epoch)
+            for key in metrics_train:
+                self.writer.add_scalar(key + '/train', metrics_train[key], epoch)
+                self.writer.add_scalar(key + '/val', metrics_val[key], epoch)
         
         self.writer.close()
             

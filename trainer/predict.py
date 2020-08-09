@@ -1,43 +1,29 @@
 import torchvision.transforms as transforms
 from dataset.dataset_melanoma import DatasetMelanoma as Dataset
 from torch.utils.data import DataLoader
-from model.iternet.iternet_classifier import *
+from model.utils import get_features_extractor_model
 import torch
 import pandas as pd
 from sklearn.metrics import roc_auc_score, confusion_matrix
+import os
 
 class Predict(object):
-    def __init__(self, arch_model='Classifier', arch_extractor='IternetFeaturesExtractor', 
-                 classifier_path=None, features_extractor_path=None,
+    def __init__(self, arch='iternet_extractor_classifier_data', 
+                 classifier_path=None, 
+                 features_extractor_path=None,
                  is_gpu_available=True):
-        # get the features extractor
-        assert arch_extractor in ['Identity', 'IternetFeaturesExtractor'], print('Unknown architecture')
-        if arch_extractor == 'Identity':
-            features_extractor = Identity()
-        elif arch_extractor == 'IternetFeaturesExtractor':
-            features_extractor = IternetFeaturesExtractor(path=features_extractor_path)
-        
-        # get the model
-        assert arch_model in ['IternetClassifier', 'Classifier', 'ClassifierData'], print('Unknown architecture')
-        if arch_model == 'Classifier':
-            model = Classifier(num_classes=2)
-        elif arch_model == 'ClassifierData':
-            model = ClassifierData(num_classes=2)
-        elif arch_model == 'IternetClassifier':
-            model = IternetClassifier(path=features_extractor_path, num_classes=2)
-        
-        # load classifiers weights
-        if classifier_path is not None:
-            new_state_dict = load_pretrained_weights(classifier_path)
-            model.load_state_dict(new_state_dict)
             
-        # move to cpu
-        features_extractor = features_extractor.cpu()
-        model = model.cpu()
+        # get model and features extractor
+        features_extractor, model = get_features_extractor_model(arch, num_classes=2, 
+                                                                 features_extractor_path=features_extractor_path, 
+                                                                 classifier_path=classifier_path, 
+                                                                 freeze=True)
         
         # move to cuda
         self.is_gpu_available = is_gpu_available
         if self.is_gpu_available:
+            torch.backends.cudnn.benchmark = True
+            #os.environ["CUDA_VISIBLE_DEVICES"] = '5,6,11,14'
             features_extractor = features_extractor.cuda()
             model = model.cuda()
             features_extractor = torch.nn.DataParallel(features_extractor)
@@ -67,6 +53,8 @@ class Predict(object):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
             ])
+            iterations = 1
+            print('-----Without data augmentation-----')
         else:
             print('-----With data augmentation-----')
             transform = transforms.Compose([
@@ -94,10 +82,6 @@ class Predict(object):
 
                     z = self.features_extractor(x)
                     z = self.model(z, data)
-
-                    # prediction
-                    _, pred = torch.max(z, 1)
-                    all_pred.extend(pred.cpu().numpy())
 
                     # cancer probability
                     prob = softmax(z)

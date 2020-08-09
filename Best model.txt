@@ -1,0 +1,5 @@
+IternetClassifierData: unfreeze
+arch_model = 'iternet_classifier_data'
+arch_extractor = 'Identity' 
+classifier_path = '/raid/mohamed/siim-isic-melanoma-classification/exp/2020-08-08_12_03_05_586405_lr_0_001_Focal_Resample_Geometry/Focal_Resample_epoch_80.pth'
+
