@@ -65,7 +65,10 @@ class DatasetMelanoma(Dataset):
             
         filename = self.annotation[self.img_col].iloc[idx]
         target = self.annotation[self.target_col].iloc[idx]
-        data = self.annotation[meta_data].iloc[idx]
+        try:
+            data = self.annotation[meta_data].iloc[idx]
+        except:
+            data = [0] * 9
         
         # get image data
         img_name = os.path.join(self.image_dir, filename + '.jpg')

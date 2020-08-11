@@ -11,7 +11,7 @@ import time
 class Trainer(object):
 
     def __init__(self, datasets, model, features_extractor, 
-                 loss_type, optimizer, lr, 
+                 loss_type, optimizer, lr, scheduler,
                  batch_size, gpus, workers, seed, writer, 
                  store_name='', resume=None, train_rule='None'):
         self.datasets = datasets
@@ -21,6 +21,7 @@ class Trainer(object):
         self.loss_type = loss_type
         self.optimizer = optimizer
         self.lr = lr
+        self.scheduler = scheduler
         self.gpus = gpus
         self.is_gpu_available = torch.cuda.is_available()
         self.seed = seed
@@ -232,10 +233,13 @@ class Trainer(object):
         
         for epoch in range(start_epoch, epochs):            
             # train and validate
-            adjust_learning_rate(self.optimizer, epoch, self.lr)
+            # adjust_learning_rate(self.optimizer, epoch, self.lr)
             train_loss, train_acc, metrics_train = self.training_step(epoch)
             val_loss, val_acc, metrics_val = self.validation_step(epoch)
             self.save_checkpoint(epoch, model_dir)
+            
+            if self.scheduler is not None:
+                self.scheduler.step()
             
             # log metrics
             self.writer.add_scalar('Loss/train', train_loss, epoch)

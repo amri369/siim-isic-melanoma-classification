@@ -22,8 +22,7 @@ def get_weights(epoch, train_rule, dataset, k=1):
 
     # get sampler and weights
     if train_rule == 'None':
-        per_cls_weights = np.array([1, 1])
-        per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 
+        per_cls_weights = [1] * len(cls_num_list)
     elif train_rule == 'Resample':
         per_cls_weights = np.array([1, 1])
         per_cls_weights = per_cls_weights / np.linalg.norm(per_cls_weights, ord=2) 

@@ -26,6 +26,7 @@ class IternetFeaturesExtractor(nn.Module):
         
         # load pretrained weights
         if path is not None:
+            print('Loading pretrained weights for iternet features extractor')
             new_state_dict = load_pretrained_weights(path)
             features_extractor.load_state_dict(new_state_dict)
             
@@ -135,20 +136,14 @@ class IternetClassifier(nn.Module):
         return x
     
 class IternetClassifierData(nn.Module):
-    def __init__(self, path=None, num_classes=2, freeze=True):
+    def __init__(self, path=None, num_classes=2):
         super(IternetClassifierData, self).__init__()
         
         # get the classifier 
         self.classifier = ClassifierData(num_classes=num_classes)
         
         # get the pretrained features extractor
-        features_extractor = IternetFeaturesExtractor(path)
-    
-        # freeze the features extractor layers
-        if freeze:
-            for param in features_extractor.parameters():
-                param.requires_grad = False
-        self.features_extractor = features_extractor
+        self.features_extractor = IternetFeaturesExtractor(path)
 
     def forward(self, x, data):
         x = self.features_extractor(x)

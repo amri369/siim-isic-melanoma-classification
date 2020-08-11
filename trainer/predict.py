@@ -14,10 +14,10 @@ class Predict(object):
                  is_gpu_available=True):
             
         # get model and features extractor
-        features_extractor, model = get_features_extractor_model(arch, num_classes=2, 
-                                                                 features_extractor_path=features_extractor_path, 
-                                                                 classifier_path=classifier_path, 
-                                                                 freeze=True)
+        features_extractor, model, size = get_features_extractor_model(arch, num_classes=2, 
+                                                                       features_extractor_path=features_extractor_path, 
+                                                                       classifier_path=classifier_path, 
+                                                                       freeze=True)
         
         # move to cuda
         self.is_gpu_available = is_gpu_available
@@ -37,7 +37,7 @@ class Predict(object):
         self.model = model
         self.features_extractor = features_extractor
             
-    def __call__(self, df, image_dir, iterations=10, augmentation=None, target_col='target', validate=True):
+    def __call__(self, df, image_dir, iterations=10, augmentation=None, target_col='target', validate=True, size=None):
         # copy the dataframe
         df = df.copy()
         if target_col in df.columns:
@@ -62,6 +62,14 @@ class Predict(object):
                 transforms.ToTensor(),
                 transforms.Normalize(mean=mean, std=std)
             ])
+            
+        if size is not None:
+            print('-----Resizing to:', size)
+            transform = transforms.Compose([
+                transforms.Resize((size, size)),
+                transform
+            ])
+            
         
         # initialize the dataset and the dataloader
         dataset = Dataset(df=df, image_dir=image_dir, transform=transform)

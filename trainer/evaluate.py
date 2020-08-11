@@ -116,7 +116,8 @@ def get_metrics(all_targets, all_prob):
     metrics = {}
     all_targets, all_prob = np.array(all_targets), np.array(all_prob)
     all_pred = (all_prob >= 0.5) * 1
-    metrics['ROC'] = roc_auc_score(all_targets, all_prob)
-    metrics['Sensitivity'] = get_sensitivity(all_prob, all_targets, threshold=0.5)
-    metrics['Specificity'] = get_specificity(all_prob, all_targets, threshold=0.5)
+    try:
+        metrics['ROC'] = roc_auc_score(all_targets, all_prob)
+    except:
+        metrics['ROC'] = -1
     return metrics
