@@ -48,46 +48,88 @@ class Ensemble(object):
         return predictions
     
     @staticmethod
-    def assemble(predictions, names, method='voting'):
+    def assemble(predictions, names, method='voting', weights=None):
         print('------Method------', method)
         df = predictions.copy()
         if method == 'voting':
-            df['prediction'] = df[names].mean(axis=1)
+            if weights is None:
+                df['prediction'] = df[names].mean(axis=1)
+            else:
+                s = 0. * df[names[0]]
+                for name, weight in zip(names, weights):
+                    print(name, weight)
+                    s = s + weight * df[name]
+                df['prediction'] = s / s.max()
+                    
         if method == 'rankdata':
             for name in names:
                 df[name] = rankdata(df[name], method='average')
-                df['prediction'] = df[names].sum(axis=1)
-                df['prediction'] = df['prediction'] / df['prediction'].max()
+                if weights is None:
+                    df['prediction'] = df[names].sum(axis=1)
+                    df['prediction'] = df['prediction'] / df['prediction'].max()
+                else:
+                    s = 0. * df[names[0]]
+                    for name, weight in zip(names, weights):
+                        print(name, weight)
+                        s = s + weight * df[name]
+                        df[name] = df[name] / df[name].max()
+                    df['prediction'] = s / s.max()
             
         return df
 
 def main(parser):
     # hard coded params
+    #params = {}
+    #params['archs'] = [
+    #    'efficientnet-b7', 'efficientnet-b7', 'efficientnet-b7', 
+    #    'iternet_extractor_classifier_data', 'iternet_extractor_classifier_data', 'iternet_extractor_classifier_data',
+    #    'residual_attention', 'residual_attention', 'residual_attention'
+    #]
+    #params['paths'] = [
+    #    'exp/best-models/efficientnet-b7-K1-pretrained-ISIC2019.pth',
+    #    'exp/best-models/efficientnet-b7-K2-pretrained-ISIC2019.pth',
+    #    'exp/best-models/efficientnet-b7-K3-pretrained-ISIC2019.pth',
+    #    'exp/best-models/iternet-K-1.pth',
+    #    'exp/best-models/iternet-K-2.pth',
+    #    'exp/best-models/iternet-K-3.pth',
+    #    'exp/best-models/residual_attention-K-1.pth',
+    #    'exp/best-models/residual_attention-K-2.pth',
+    #    'exp/best-models/residual_attention-K-3.pth',
+    #]
+    #params['sizes'] = [224, 224, 224, 
+    #                   256, 256,
+    #                   448, 448, 448
+    #                  ]
+    #params['names'] = ['efficientnet-b7-K-1', 'efficientnet-b7-K-2', 'efficientnet-b7-K-3', 
+    #                   'iternet-K-1', 'iternet-K-2',
+    #                   'residual_attention-K-1', 'residual_attention-K-2', 'residual_attention-K-3'
+    #                  ]
+    
+    # only efficient-nets
     params = {}
-    params['archs'] = [
-        'efficientnet-b7', 'efficientnet-b7', 'efficientnet-b7', 
-        'iternet_extractor_classifier_data', 'iternet_extractor_classifier_data', 'iternet_extractor_classifier_data',
-        'residual_attention', 'residual_attention', 'residual_attention'
-    ]
+    params['archs'] = ['efficientnet-b7', 'efficientnet-b7', 'efficientnet-b7',
+                       'iternet_extractor_classifier_data', 'iternet_extractor_classifier_data',
+                       'iternet_extractor_classifier_data',
+                       'residual_attention', 'residual_attention', 'residual_attention'
+                      ]
     params['paths'] = [
-        'exp/efficientnet-b7-K-1/efficientnet-b7_Focal_Resample_epoch_121.pth',
-        'exp/efficientnet-b7-K-2/efficientnet-b7_Focal_Resample_epoch_147.pth',
-        'exp/efficientnet-b7-K-3/efficientnet-b7_Focal_Resample_epoch_145.pth',
-        'exp/iternet-K-1/iternet_extractor_classifier_data_Focal_Resample_epoch_82.pth',
-        'exp/iternet-K-2/iternet_extractor_classifier_data_Focal_Resample_epoch_78.pth',
-        'exp/iternet-K-3/iternet_extractor_classifier_data_Focal_Resample_epoch_73.pth',
-        'exp/residual_attention-K-1/residual_attention_Focal_Resample_epoch_8.pth',
-        'exp/residual_attention-K-2/residual_attention_Focal_Resample_epoch_3.pth',
-        'exp/residual_attention-K-3/residual_attention_Focal_Resample_epoch_6.pth'
+        'exp/best-models/efficientnet-b7-K1-pretrained-ISIC2019.pth',
+        'exp/best-models/efficientnet-b7-K2-pretrained-ISIC2019.pth',
+        'exp/best-models/efficientnet-b7-K3-pretrained-ISIC2019.pth',
+        'exp/best-models/iternet-K-1.pth',
+        'exp/best-models/iternet-K-2.pth',
+        'exp/best-models/iternet-K-3.pth',
+        'exp/best-models/residual_attention-K-1.pth',
+        'exp/best-models/residual_attention-K-2.pth',
+        'exp/best-models/residual_attention-K-3.pth'
     ]
-    params['sizes'] = [224, 224, 224, 
-                       256, 256,
+    params['sizes'] = [224, 224, 224,
+                       256, 256, 256,
                        448, 448, 448
                       ]
-    params['names'] = ['efficientnet-b7-K-1', 'efficientnet-b7-K-2', 'efficientnet-b7-K-3', 
-                       'iternet-K-1', 'iternet-K-2',
-                       'residual_attention-K-1', 'residual_attention-K-2', 'residual_attention-K-3'
-                      ]
+    params['names'] = ['efficientnet-b7-K-1', 'efficientnet-b7-K-2', 'efficientnet-b7-K-3',
+                      'iternet-K-1', 'iternet-K-2', 'iternet-K-3',
+                      'residual_attention-K-1', 'residual_attention-K-2', 'residual_attention-K-3']
     
     # read dataframe
     df = pd.read_csv(args.csv_path)
@@ -99,7 +141,7 @@ def main(parser):
     # predict using the ensemble method
     ensemble = Ensemble(params)
     predictions = ensemble.predict(df, args.image_dir, validate=args.validate, is_gpu_available=args.use_gpu)
-    df = Ensemble.assemble(predictions, params['names'], method=args.ensemble_method)
+    df = Ensemble.assemble(predictions, params['names'], method=args.ensemble_method, weights=None)
     
     # save predictions
     df.to_csv(os.path.join(args.results_path, 'results.csv'), index=None)

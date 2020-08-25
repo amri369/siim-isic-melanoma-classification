@@ -28,7 +28,18 @@ CUDA_VISIBLE_DEVICES=1,2,3,4,6 python main.py --gpus 1,2,3,4,6 --train_rule Resa
 
 CUDA_VISIBLE_DEVICES=7,8,9,11,12,13 python main.py --gpus 7,8,9,11,12,13 --train_rule Resample --batch_size 256 --augmentation GeometryContrast --epochs 200 --arch efficientnet-b7 --train_csv data/splits/train-K-2.csv --val_csv data/splits/test-K-2.csv --model_dir exp/efficientnet-b7-K-2 --pretrained
 
-----------EfficientNet pretrained on ISIC2019 with new optimizer
+CUDA_VISIBLE_DEVICES=7,8,9,11,12,13 python main.py --gpus 7,8,9,11,12,13 --train_rule Resample --batch_size 256 --augmentation GeometryContrast --epochs 200 --arch efficientnet-b7 --train_csv data/splits/train-K-3.csv --val_csv data/splits/test-K-3.csv --model_dir exp/efficientnet-b7-K-3 --pretrained
 
-CUDA_VISIBLE_DEVICES=1,2,3,4,6 python main.py --gpus 1,2,3,4,6 --train_rule Resample --batch_size 256 --augmentation GeometryContrast --epochs 200 --arch efficientnet-b7 --train_csv data/splits/train-K-1.csv --val_csv data/splits/test-K-1.csv --model_dir exp/efficientnet-b7-K-1 --pretrained --optimizer RMS --scheduler StepLR --lr 0.01 --weight_decay 1E-5
+----------EfficientNet resume normal distribution
+CUDA_VISIBLE_DEVICES=7,8,9,11,12,13 python main.py --gpus 7,8,9,11,12,13 --train_rule DRW --batch_size 256 --augmentation GeometryContrast --epochs 300 --arch efficientnet-b7 --train_csv data/splits/train-K-1.csv --val_csv data/splits/test-K-1.csv --model_dir exp/efficientnet-b7-K-1 --resume exp/best-models/efficientnet-b7-K1-pretrained-ISIC2019.pth
+
+CUDA_VISIBLE_DEVICES=1,2,3,4,6 python main.py --gpus 1,2,3,4,6 --train_rule DRW --batch_size 256 --augmentation GeometryContrast --epochs 300 --arch efficientnet-b7 --train_csv data/splits/train-K-2.csv --val_csv data/splits/test-K-2.csv --model_dir exp/efficientnet-b7-K-2 --resume exp/best-models/efficientnet-b7-K2-pretrained-ISIC2019.pth
+
+----------EfficientNet resume normal distribution new augment
+CUDA_VISIBLE_DEVICES=7,8,9,11,12,13 python main.py --gpus 7,8,9,11,12,13 --train_rule DRW --batch_size 256 --augmentation BasicSet --epochs 200 --arch efficientnet-b7 --train_csv data/splits/train-K-1.csv --val_csv data/splits/test-K-1.csv --model_dir exp/efficientnet-b7-K-1-BasicSet --resume exp/best-models/efficientnet-b7-K1-pretrained-ISIC2019.pth
+
+CUDA_VISIBLE_DEVICES=1,2,3,4,6 python main.py --gpus 1,2,3,4,6 --train_rule Resample --batch_size 256 --augmentation BasicSet --epochs 200 --arch efficientnet-b7 --train_csv data/splits/train-K-1.csv --val_csv data/splits/test-K-1.csv --model_dir exp/efficientnet-b7-K-1-BasicSet-Resample --resume exp/best-models/efficientnet-b7-K1-pretrained-ISIC2019.pth
+
+CUDA_VISIBLE_DEVICES=7,8,9,11,12,13 python main.py --gpus 7,8,9,11,12,13 --train_rule DRW --batch_size 256 --augmentation BasicSet --epochs 200 --arch efficientnet-b7 --train_csv data/splits/train-K-1.csv --val_csv data/splits/test-K-1.csv --model_dir exp/efficientnet-b7-K-1
+CUDA_VISIBLE_DEVICES=7,8,9,11,12,13 python main.py --gpus 7,8,9,11,12,13 --train_rule Resample --batch_size 256 --augmentation BasicSet --epochs 200 --arch efficientnet-b7 --train_csv data/splits/train-K-1.csv --val_csv data/splits/test-K-1.csv --model_dir exp/efficientnet-b7-K-1 --resume exp/efficientnet-b7-K-1/efficientnet-b7_Focal_DRW_epoch_140.pth
 

@@ -1,66 +1,13 @@
-import torchvision.transforms as transforms
+"""
+Reproduced from https://github.com/DeepVoltaire/AutoAugment
+MIT License
+"""
+
 from PIL import Image, ImageEnhance, ImageOps
 import numpy as np
 import random
-#from auglib.augmentation import Augmentations, set_seeds
 
-class BasicSet(object):
-    def __init__(self, crop_size):
-        #crop = transforms.RandomCrop(crop_size)
-        crop = Identity()
-        affine = transforms.RandomAffine(degrees=90, shear=20, scale=[0.8, 1.2])
-        hflip = transforms.RandomHorizontalFlip()
-        vflip = transforms.RandomVerticalFlip()
-        color = transforms.ColorJitter(brightness=[0.7, 1.3], contrast=[0.7, 1.3], saturation=[0.7, 1.3], hue=[-0.1, 0.1])
-        self.transform = transforms.Compose([crop, affine, hflip, vflip, color])
-        
-    def __call__(self, x):
-        x = self.transform(x)
-        return x        
 
-class Identity(object):
-    def __call__(self, x):
-        return x
-
-class Geometry(object):
-    def __init__(self, random_rotate=True, random_hflip=True, random_vflip=True, degrees=(-180, 180)):
-        degrees = degrees
-        rotate = Identity()
-        hflip = Identity()
-        vflip = Identity()
-        if random_rotate:
-            rotate = transforms.RandomAffine(degrees)
-        if random_hflip:
-            hflip = transforms.RandomHorizontalFlip()
-        if random_vflip:
-            vflip = transforms.RandomVerticalFlip()
-        self.transform = transforms.Compose([rotate, hflip, vflip])
-    
-    def __call__(self, x):
-        x = self.transform(x)
-        return x
-    
-class GeometryContrast(object):
-    def __init__(self, random_rotate=True, random_hflip=True, random_vflip=True, random_color=True, degrees=(-180, 180)):
-        degrees = degrees
-        rotate = Identity()
-        hflip = Identity()
-        vflip = Identity()
-        random_color = Identity()
-        if random_rotate:
-            rotate = transforms.RandomAffine(degrees)
-        if random_hflip:
-            hflip = transforms.RandomHorizontalFlip()
-        if random_vflip:
-            vflip = transforms.RandomVerticalFlip()
-        if random_color:
-            color = transforms.ColorJitter(brightness=32. / 255.,saturation=0.5)
-        self.transform = transforms.Compose([rotate, hflip, vflip, color])
-    
-    def __call__(self, x):
-        x = self.transform(x)
-        return x
-            
 class ImageNetPolicy(object):
     """ Randomly choose one of the best 24 Sub-policies on ImageNet.
 
@@ -103,8 +50,7 @@ class ImageNetPolicy(object):
             SubPolicy(0.4, "equalize", 7, 0.2, "solarize", 4, fillcolor),
             SubPolicy(0.6, "solarize", 5, 0.6, "autocontrast", 5, fillcolor),
             SubPolicy(0.6, "invert", 4, 1.0, "equalize", 8, fillcolor),
-            SubPolicy(0.6, "color", 4, 1.0, "contrast", 8, fillcolor),
-            SubPolicy(0.8, "equalize", 8, 0.6, "equalize", 3, fillcolor)
+            SubPolicy(0.6, "color", 4, 1.0, "contrast", 8, fillcolor)
         ]
 
 
@@ -150,7 +96,7 @@ class CIFAR10Policy(object):
             SubPolicy(0.5, "solarize", 2, 0.0, "invert", 3, fillcolor),
 
             SubPolicy(0.2, "equalize", 0, 0.6, "autocontrast", 0, fillcolor),
-            SubPolicy(0.2, "equalize", 8, 0.6, "equalize", 4, fillcolor),
+            SubPolicy(0.2, "equalize", 8, 0.8, "equalize", 4, fillcolor),
             SubPolicy(0.9, "color", 9, 0.6, "equalize", 6, fillcolor),
             SubPolicy(0.8, "autocontrast", 4, 0.2, "solarize", 8, fillcolor),
             SubPolicy(0.1, "brightness", 3, 0.7, "color", 0, fillcolor),
@@ -264,6 +210,7 @@ class SubPolicy(object):
                 img.size, Image.AFFINE, (1, 0, 0, 0, 1, magnitude * img.size[1] * random.choice([-1, 1])),
                 fillcolor=fillcolor),
             "rotate": lambda img, magnitude: rotate_with_fill(img, magnitude),
+            # "rotate": lambda img, magnitude: img.rotate(magnitude * random.choice([-1, 1])),
             "color": lambda img, magnitude: ImageEnhance.Color(img).enhance(1 + magnitude * random.choice([-1, 1])),
             "posterize": lambda img, magnitude: ImageOps.posterize(img, magnitude),
             "solarize": lambda img, magnitude: ImageOps.solarize(img, magnitude),
@@ -278,6 +225,9 @@ class SubPolicy(object):
             "invert": lambda img, magnitude: ImageOps.invert(img)
         }
 
+        # self.name = "{}_{:.2f}_and_{}_{:.2f}".format(
+        #     operation1, ranges[operation1][magnitude_idx1],
+        #     operation2, ranges[operation2][magnitude_idx2])
         self.p1 = p1
         self.operation1 = func[operation1]
         self.magnitude1 = ranges[operation1][magnitude_idx1]

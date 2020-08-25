@@ -22,12 +22,15 @@ def main(args):
                                                                    pretrained = args.pretrained)
     
     # get the augmentation strategy
+    crop_size = [0.7, 1.]
+    crop_size = [int(a * size) for a in crop_size]
     augmentation = {
         'ImageNetPolicy': ImageNetPolicy(),
         'CIFAR10Policy': CIFAR10Policy(),
         'SVHNPolicy': SVHNPolicy(),
         'Geometry': Geometry(),
-        'GeometryContrast': GeometryContrast()
+        'GeometryContrast': GeometryContrast(),
+        'BasicSet': BasicSet(crop_size)
     }
     augmentation = augmentation[args.augmentation]
     
